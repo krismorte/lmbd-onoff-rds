@@ -1,0 +1,60 @@
+
+service: lmbd-onoff-rds
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python2.7
+  region: us-east-1
+  environment:
+    RDS_REGION: us-east-1
+    TAG_KEY: Environment
+    TAG_VALUES: Testing,Staging
+
+functions:
+  rds-on:
+    handler: lambda_function.lambda_handler
+    role: myCustRole
+    events:
+      - schedule: cron(0 8 ? * MON-FRI *)
+    environment:
+      CMD: START
+  rds-off:
+    handler: lambda_function.lambda_handler
+    role: myCustRole
+    events:
+      - schedule: cron(0 19 ? * MON-FRI *)
+    environment:
+      CMD: STOP
+
+resources:
+  Resources:
+    myCustRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: lmbd-rds-onoff-role
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: lmbd-rds-onoff-policy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - rds:*
+                  Resource: "*"
